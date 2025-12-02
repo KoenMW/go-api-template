@@ -2,17 +2,17 @@ package rest
 
 import (
 	"encoding/json"
-	"go-api/domain"
-	"go-api/ports"
+	service "go-api/domain/service"
+	repository "go-api/ports/repository"
 	"net/http"
 )
 
 type Handler struct {
-	Producer ports.HelloWorldProducer
+	Producer repository.HelloWorldProducer
 }
 
 func (h *Handler) Messages(w http.ResponseWriter, r *http.Request) {
-	var msg domain.Message
+	var msg service.Message
 	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
