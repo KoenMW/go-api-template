@@ -1,6 +1,6 @@
 # group11-go-microservice-template
 
-Minimal Go microservice template following a hexagonal architecture. The service exposes a single POST /hello endpoint.
+Minimal Go microservice template following a hexagonal architecture. The service exposes user management endpoints.
 
 ## Architecture
 
@@ -11,29 +11,45 @@ The project follows a hexagonal (ports & adapters) architecture:
 
 This separation keeps business rules independent from transport and infrastructure concerns.
 
-## Endpoint
+## Endpoints
 
-POST /hello
+POST /users
 
-- Description: returns a greeting for the provided name.
+- Description: create a new user.
 - Request (application/json):
-  - body: { "message": string }
+  - body: { "name": string, "email": string }
 - Response (application/json):
-  - body: { "greeting": string }
+  - body: { "id": string, "name": string }
 
-Example request:
+GET /users/{id}
 
-```json
-{ "message": "Hello" }
-```
+- Description: retrieve a user by UUID.
+- Response (application/json):
+  - body: { "id": string, "name": string }
 
-cURL example:
+cURL examples:
+
+Create user:
 
 ```bash
-curl -X POST http://localhost:8080/hello \
+curl -X POST http://localhost:8080/users \
   -H "Content-Type: application/json" \
-  -d '{"message":"Hello"}'
+  -d '{"name":"Alice","email":"alice@example.com"}'
 ```
+
+Get user:
+
+```bash
+curl http://localhost:8080/users/<user-uuid>
+```
+
+## ORM
+
+This project includes an ORM (bun) for database access. Database models use bun struct tags and UUIDs (github.com/google/uuid). Database connection and migrations are handled in the adaptors/db package.
+
+## Warning
+
+This template does not include authentication, authorization, input validation beyond basic JSON decoding, encryption, rate limiting, or other security controls. Do NOT use this code as-is in production for systems that handle important or sensitive data. Treat this project as a starter template and add proper security measures before deploying.
 
 ## Prerequisites
 
@@ -44,7 +60,8 @@ curl -X POST http://localhost:8080/hello \
 
 1. Build & run directly:
    ```bash
-   go run ./src/app
+   cd src
+   go run ./app
    ```
 
 ## Run with Docker
@@ -54,4 +71,4 @@ curl -X POST http://localhost:8080/hello \
    docker compose up --build
    ```
 
-The service will be available at http://localhost:8080/hello
+The service will be available at http://localhost:8080
