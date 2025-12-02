@@ -22,3 +22,10 @@ func BodyReader[T any](req *http.Request) (*T, error) {
 
 	return &data, nil
 }
+
+func WriteJSONResponse[T any](w http.ResponseWriter, statusCode int, data *T) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	return json.NewEncoder(w).Encode(data)
+}
