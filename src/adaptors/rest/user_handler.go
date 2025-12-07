@@ -3,11 +3,13 @@ package rest
 import (
 	"context"
 	"go-api/adaptors/db"
+	core "go-api/domain/core"
 	"go-api/domain/model"
 	"go-api/ports/repository"
 	"net/http"
-	"strconv"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -18,28 +20,74 @@ type UserHandler struct {
 var userHandler *UserHandler
 
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	idStr := r.URL.Path[len("/users/"):]
+	idStr := r.PathValue("id")
 	if idStr == "" {
-		http.Error(w, "missing user id", http.StatusBadRequest)
+		http.Error(w, core.MissingId, http.StatusBadRequest)
 		return
 	}
 
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := uuid.Parse(idStr)
 
 	if err != nil {
-		http.Error(w, "Invalid id", http.StatusBadRequest)
+		http.Error(w, core.InvalidId, http.StatusBadRequest)
 		return
 	}
 
-	user, err := h.UserRepository.GetUserByID(int64(id))
+	user, err := h.UserRepository.GetByID(id)
 
 	if err != nil {
-		http.Error(w, "User not found", http.StatusNotFound)
+		http.Error(w, core.UserNotFound, http.StatusNotFound)
+		return
+	}
+
+	WriteJSONResponse(w, http.StatusOK, &user)
+}
+
+func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+	page, perPage := parsePagination(r)
+
+	users, err := h.UserRepository.List(perPage, page)
+	if err != nil {
+		WriteJSONResponse(w, http.StatusInternalServerError, &model.ErrorResponse{
+			Message: "Failed to list users",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	WriteJSONResponse(w, http.StatusOK, &users)
+}
+
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	if idStr == "" {
+		http.Error(w, core.MissingId, http.StatusBadRequest)
+		return
+	}
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, core.InvalidId, http.StatusBadRequest)
+		return
+	}
+	updateUserDTO, err := BodyReader[model.UserDTO](r)
+	if err != nil {
+		WriteJSONResponse(w, http.StatusBadRequest, &model.ErrorResponse{
+			Message: core.InvalidRequestBody,
+			Error:   err.Error(),
+		})
+		return
+	}
+	user, err := h.UserRepository.Update(&model.User{
+		ID:        id,
+		Name:      updateUserDTO.Name,
+		Email:     updateUserDTO.Email,
+		UpdatedAt: time.Now(),
+	})
+	if err != nil {
+		WriteJSONResponse(w, http.StatusInternalServerError, &model.ErrorResponse{
+			Message: "Failed to update user",
+			Error:   err.Error(),
+		})
 		return
 	}
 
@@ -47,11 +95,6 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	createUserDTO, err := BodyReader[model.CreateUserDTO](r)
 	if err != nil {
 		WriteJSONResponse(w, http.StatusBadRequest, &model.ErrorResponse{
@@ -60,7 +103,13 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	user, err := h.UserRepository.CreateUser(createUserDTO)
+	user, err := h.UserRepository.Create(&model.User{
+		ID:        uuid.New(),
+		Name:      createUserDTO.Name,
+		Email:     createUserDTO.Email,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	})
 	if err != nil {
 		WriteJSONResponse(w, http.StatusInternalServerError, &model.ErrorResponse{
 			Message: "Failed to create user",
@@ -70,6 +119,26 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	WriteJSONResponse(w, http.StatusCreated, &user)
+}
+
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	if idStr == "" {
+		http.Error(w, core.MissingId, http.StatusBadRequest)
+		return
+	}
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		http.Error(w, core.InvalidId, http.StatusBadRequest)
+		return
+	}
+	id, err = h.UserRepository.Delete(id)
+	if err != nil {
+		http.Error(w, core.UserNotFound, http.StatusNotFound)
+		return
+	}
+
+	WriteJSONResponse(w, http.StatusOK, &map[string]string{"id": id.String()})
 }
 
 func NewUserHandler(bun *bun.DB) *UserHandler {
