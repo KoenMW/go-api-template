@@ -19,13 +19,36 @@ POST /users
 - Request (application/json):
   - body: { "name": string, "email": string }
 - Response (application/json):
-  - body: { "id": string, "name": string }
+  - body: { "id": string, "name": string, "email": string }
+
+GET /users
+
+- Description: retrieve all users with pagination.
+- Query parameters:
+  - page: page number (default: 1)
+  - per_page: number of users per page (default: 10)
+- Response (application/json):
+  - body: array of { "id": string, "name": string, "email": string }
 
 GET /users/{id}
 
 - Description: retrieve a user by UUID.
 - Response (application/json):
-  - body: { "id": string, "name": string }
+  - body: { "id": string, "name": string, "email": string }
+
+PUT /users/{id}
+
+- Description: update an existing user.
+- Request (application/json):
+  - body: { "name": string, "email": string }
+- Response (application/json):
+  - body: { "id": string, "name": string, "email": string }
+
+DELETE /users/{id}
+
+- Description: delete a user by UUID.
+- Response (application/json):
+  - body: { "id": string }
 
 cURL examples:
 
@@ -37,10 +60,30 @@ curl -X POST http://localhost:8080/users \
   -d '{"name":"Alice","email":"alice@example.com"}'
 ```
 
+List users:
+
+```bash
+curl http://localhost:8080/users?page=1&per_page=10
+```
+
 Get user:
 
 ```bash
 curl http://localhost:8080/users/<user-uuid>
+```
+
+Update user:
+
+```bash
+curl -X PUT http://localhost:8080/users/<user-uuid> \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Alice Updated","email":"alice.updated@example.com"}'
+```
+
+Delete user:
+
+```bash
+curl -X DELETE http://localhost:8080/users/<user-uuid>
 ```
 
 ## ORM
