@@ -17,6 +17,7 @@ func NewUserService(repo repository.UserRepository) *UserService {
 
 func (s *UserService) CreateUser(user *model.CreateUserDTO) (*model.UserDTO, error) {
 	newUser := &model.User{
+		ID:    uuid.New(),
 		Name:  user.Name,
 		Email: user.Email,
 	}
