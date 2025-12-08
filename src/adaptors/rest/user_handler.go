@@ -5,16 +5,15 @@ import (
 	"go-api/adaptors/db"
 	"go-api/domain/core"
 	"go-api/domain/model"
-	"go-api/ports/repository"
+	"go-api/domain/service"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
 type UserHandler struct {
-	UserRepository repository.UserRepository
+	UserService service.UserService
 }
 
 var userHandler *UserHandler
@@ -33,7 +32,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.UserRepository.GetByID(id)
+	user, err := h.UserService.GetUserByID(id)
 
 	if err != nil {
 		http.Error(w, core.UserNotFound, http.StatusNotFound)
@@ -46,7 +45,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	page, perPage := parsePagination(r)
 
-	users, err := h.UserRepository.List(perPage, page)
+	users, err := h.UserService.ListUsers(perPage, page)
 	if err != nil {
 		WriteJSONResponse(w, http.StatusInternalServerError, &model.ErrorResponse{
 			Message: "Failed to list users",
@@ -77,11 +76,10 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	user, err := h.UserRepository.Update(&model.User{
-		ID:        id,
-		Name:      updateUserDTO.Name,
-		Email:     updateUserDTO.Email,
-		UpdatedAt: time.Now(),
+	user, err := h.UserService.UpdateUser(&model.UserDTO{
+		ID:    id,
+		Name:  updateUserDTO.Name,
+		Email: updateUserDTO.Email,
 	})
 	if err != nil {
 		WriteJSONResponse(w, http.StatusInternalServerError, &model.ErrorResponse{
@@ -103,12 +101,9 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	user, err := h.UserRepository.Create(&model.User{
-		ID:        uuid.New(),
-		Name:      createUserDTO.Name,
-		Email:     createUserDTO.Email,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+	user, err := h.UserService.CreateUser(&model.CreateUserDTO{
+		Name:  createUserDTO.Name,
+		Email: createUserDTO.Email,
 	})
 	if err != nil {
 		WriteJSONResponse(w, http.StatusInternalServerError, &model.ErrorResponse{
@@ -132,7 +127,7 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, core.InvalidId, http.StatusBadRequest)
 		return
 	}
-	id, err = h.UserRepository.Delete(id)
+	id, err = h.UserService.DeleteUser(id)
 	if err != nil {
 		http.Error(w, core.UserNotFound, http.StatusNotFound)
 		return
@@ -149,7 +144,7 @@ func NewUserHandler(bun *bun.DB) *UserHandler {
 	ctx := context.Background()
 
 	userHandler = &UserHandler{
-		UserRepository: db.NewUserRepository(bun, ctx),
+		UserService: *service.NewUserService(db.NewUserRepository(bun, ctx)),
 	}
 	return userHandler
 }
