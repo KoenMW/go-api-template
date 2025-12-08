@@ -3,7 +3,7 @@ package rest
 import (
 	"context"
 	"go-api/adaptors/db"
-	core "go-api/domain/core"
+	"go-api/domain/core"
 	"go-api/domain/model"
 	"go-api/ports/repository"
 	"net/http"
