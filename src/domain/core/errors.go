@@ -1,4 +1,4 @@
-package domain
+package core
 
 var MissingId = "missing id"
 var InvalidId = "invalid id"
