@@ -18,7 +18,7 @@ type UserHandler struct {
 
 var userHandler *UserHandler
 
-func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
 		http.Error(w, core.MissingId, http.StatusBadRequest)
@@ -42,7 +42,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	WriteJSONResponse(w, http.StatusOK, &user)
 }
 
-func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 	page, perPage := parsePagination(r)
 
 	users, err := h.UserService.ListUsers(perPage, page)
@@ -57,7 +57,7 @@ func (h *UserHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	WriteJSONResponse(w, http.StatusOK, &users)
 }
 
-func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
 		http.Error(w, core.MissingId, http.StatusBadRequest)
@@ -92,7 +92,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	WriteJSONResponse(w, http.StatusOK, &user)
 }
 
-func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 	createUserDTO, err := BodyReader[model.CreateUserDTO](r)
 	if err != nil {
 		WriteJSONResponse(w, http.StatusBadRequest, &model.ErrorResponse{
@@ -116,7 +116,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	WriteJSONResponse(w, http.StatusCreated, &user)
 }
 
-func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
 		http.Error(w, core.MissingId, http.StatusBadRequest)

@@ -16,11 +16,7 @@ func main() {
 	}
 
 	UserHandler := rest.NewUserHandler(bun)
-	http.HandleFunc("POST /users", UserHandler.CreateUser)
-	http.HandleFunc("GET /users/{id}", UserHandler.GetUser)
-	http.HandleFunc("GET /users", UserHandler.ListUsers)
-	http.HandleFunc("PUT /users/{id}", UserHandler.UpdateUser)
-	http.HandleFunc("DELETE /users/{id}", UserHandler.DeleteUser)
+	rest.RegisterCRUD("/users", UserHandler)
 
 	http.ListenAndServe(":8080", nil)
 }
