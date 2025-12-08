@@ -3,9 +3,12 @@ package rest
 import (
 	"encoding/json"
 	"errors"
+	"go-api/domain/core"
 	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/google/uuid"
 )
 
 func BodyReader[T any](req *http.Request) (*T, error) {
@@ -50,4 +53,18 @@ func WriteJSONResponse[T any](w http.ResponseWriter, statusCode int, data *T) er
 	w.WriteHeader(statusCode)
 
 	return json.NewEncoder(w).Encode(data)
+}
+
+func ParsePathID(r *http.Request) (uuid.UUID, error) {
+	idStr := r.PathValue("id")
+	if idStr == "" {
+		return uuid.Nil, errors.New(core.InvalidId)
+	}
+
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return uuid.Nil, errors.New(core.InvalidId)
+	}
+
+	return id, nil
 }

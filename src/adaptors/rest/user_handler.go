@@ -8,7 +8,6 @@ import (
 	"go-api/domain/service"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/uptrace/bun"
 )
 
@@ -19,16 +18,9 @@ type UserHandler struct {
 var userHandler *UserHandler
 
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	if idStr == "" {
-		http.Error(w, core.MissingId, http.StatusBadRequest)
-		return
-	}
-
-	id, err := uuid.Parse(idStr)
-
+	id, err := ParsePathID(r)
 	if err != nil {
-		http.Error(w, core.InvalidId, http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -58,16 +50,12 @@ func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	if idStr == "" {
-		http.Error(w, core.MissingId, http.StatusBadRequest)
-		return
-	}
-	id, err := uuid.Parse(idStr)
+	id, err := ParsePathID(r)
 	if err != nil {
-		http.Error(w, core.InvalidId, http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	updateUserDTO, err := BodyReader[model.UserDTO](r)
 	if err != nil {
 		WriteJSONResponse(w, http.StatusBadRequest, &model.ErrorResponse{
@@ -117,16 +105,12 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	idStr := r.PathValue("id")
-	if idStr == "" {
-		http.Error(w, core.MissingId, http.StatusBadRequest)
-		return
-	}
-	id, err := uuid.Parse(idStr)
+	id, err := ParsePathID(r)
 	if err != nil {
-		http.Error(w, core.InvalidId, http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	id, err = h.UserService.DeleteUser(id)
 	if err != nil {
 		http.Error(w, core.UserNotFound, http.StatusNotFound)
