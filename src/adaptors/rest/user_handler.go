@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"context"
 	"go-api/adaptors/db"
 	"go-api/domain/core"
 	"go-api/domain/model"
@@ -24,7 +23,7 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.UserService.GetUserByID(id)
+	user, err := h.UserService.GetUserByID(r.Context(), id)
 
 	if err != nil {
 		http.Error(w, core.UserNotFound, http.StatusNotFound)
@@ -37,7 +36,7 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) List(w http.ResponseWriter, r *http.Request) {
 	page, perPage := parsePagination(r)
 
-	users, err := h.UserService.ListUsers(perPage, page)
+	users, err := h.UserService.ListUsers(r.Context(), perPage, page)
 	if err != nil {
 		WriteJSONResponse(w, http.StatusInternalServerError, &model.ErrorResponse{
 			Message: "Failed to list users",
@@ -64,7 +63,7 @@ func (h *UserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	user, err := h.UserService.UpdateUser(&model.UserDTO{
+	user, err := h.UserService.UpdateUser(r.Context(), &model.UserDTO{
 		ID:    id,
 		Name:  updateUserDTO.Name,
 		Email: updateUserDTO.Email,
@@ -89,7 +88,7 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	user, err := h.UserService.CreateUser(&model.CreateUserDTO{
+	user, err := h.UserService.CreateUser(r.Context(), &model.CreateUserDTO{
 		Name:  createUserDTO.Name,
 		Email: createUserDTO.Email,
 	})
@@ -111,7 +110,7 @@ func (h *UserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err = h.UserService.DeleteUser(id)
+	id, err = h.UserService.DeleteUser(r.Context(), id)
 	if err != nil {
 		http.Error(w, core.UserNotFound, http.StatusNotFound)
 		return
@@ -125,10 +124,8 @@ func NewUserHandler(bun *bun.DB) *UserHandler {
 		return userHandler
 	}
 
-	ctx := context.Background()
-
 	userHandler = &UserHandler{
-		UserService: *service.NewUserService(db.NewUserRepository(bun, ctx)),
+		UserService: *service.NewUserService(db.NewUserRepository(bun)),
 	}
 	return userHandler
 }

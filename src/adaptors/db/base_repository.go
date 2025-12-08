@@ -10,18 +10,17 @@ import (
 
 type Repository[T any] struct {
 	db   *bun.DB
-	ctx  context.Context
 	zero *T
 }
 
-func NewRepository[T any](db *bun.DB, ctx context.Context) *Repository[T] {
+func NewRepository[T any](db *bun.DB) *Repository[T] {
 	var zero T
-	repo := &Repository[T]{db: db, ctx: ctx, zero: &zero}
+	repo := &Repository[T]{db: db, zero: &zero}
 
 	_, err := db.NewCreateTable().
 		Model(repo.zero).
 		IfNotExists().
-		Exec(ctx)
+		Exec(context.Background())
 
 	if err != nil {
 		panic(fmt.Errorf("failed creating users table: %w", err))
@@ -30,17 +29,17 @@ func NewRepository[T any](db *bun.DB, ctx context.Context) *Repository[T] {
 	return repo
 }
 
-func (r *Repository[T]) Create(entity *T) (*T, error) {
-	_, err := r.db.NewInsert().Model(entity).Exec(r.ctx)
+func (r *Repository[T]) Create(ctx context.Context, entity *T) (*T, error) {
+	_, err := r.db.NewInsert().Model(entity).Exec(ctx)
 	return entity, err
 }
 
-func (r *Repository[T]) GetByID(id uuid.UUID) (*T, error) {
+func (r *Repository[T]) GetByID(ctx context.Context, id uuid.UUID) (*T, error) {
 	var entity T
 	err := r.db.NewSelect().
 		Model(&entity).
 		Where("id = ?", id).
-		Scan(r.ctx)
+		Scan(ctx)
 
 	if err != nil {
 		return &entity, err
@@ -49,16 +48,16 @@ func (r *Repository[T]) GetByID(id uuid.UUID) (*T, error) {
 	return &entity, nil
 }
 
-func (r *Repository[T]) Update(entity *T) (*T, error) {
-	_, err := r.db.NewUpdate().Model(entity).Exec(r.ctx)
+func (r *Repository[T]) Update(ctx context.Context, entity *T) (*T, error) {
+	_, err := r.db.NewUpdate().Model(entity).Exec(ctx)
 	return entity, err
 }
 
-func (r *Repository[T]) Delete(id uuid.UUID) (uuid.UUID, error) {
+func (r *Repository[T]) Delete(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
 	res, err := r.db.NewDelete().
 		Model(r.zero).
 		Where("id = ?", id).
-		Exec(r.ctx)
+		Exec(ctx)
 	if err != nil {
 		return id, err
 	}
@@ -71,14 +70,14 @@ func (r *Repository[T]) Delete(id uuid.UUID) (uuid.UUID, error) {
 	return id, nil
 }
 
-func (r *Repository[T]) List(perPage, page int) ([]T, error) {
+func (r *Repository[T]) List(ctx context.Context, perPage, page int) ([]T, error) {
 	var entities []T
 
 	err := r.db.NewSelect().
 		Model(&entities).
 		Limit(perPage).
 		Offset((page - 1) * perPage).
-		Scan(r.ctx)
+		Scan(ctx)
 
 	if err != nil {
 		return nil, err
@@ -87,9 +86,9 @@ func (r *Repository[T]) List(perPage, page int) ([]T, error) {
 	return entities, nil
 }
 
-func (r *Repository[T]) Count() (int, error) {
+func (r *Repository[T]) Count(ctx context.Context) (int, error) {
 	var count int
-	err := r.db.NewSelect().Model(new(T)).ColumnExpr("count(*)").Scan(r.ctx, &count)
+	err := r.db.NewSelect().Model(new(T)).ColumnExpr("count(*)").Scan(ctx, &count)
 	if err != nil {
 		return 0, err
 	}

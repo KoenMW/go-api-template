@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"go-api/domain/model"
 	"go-api/ports/repository"
 
@@ -15,13 +16,13 @@ func NewUserService(repo repository.UserRepository) *UserService {
 	return &UserService{repo: repo}
 }
 
-func (s *UserService) CreateUser(user *model.CreateUserDTO) (*model.UserDTO, error) {
+func (s *UserService) CreateUser(ctx context.Context, user *model.CreateUserDTO) (*model.UserDTO, error) {
 	newUser := &model.User{
 		ID:    uuid.New(),
 		Name:  user.Name,
 		Email: user.Email,
 	}
-	createdUser, err := s.repo.Create(newUser)
+	createdUser, err := s.repo.Create(ctx, newUser)
 	return &model.UserDTO{
 		ID:    createdUser.ID,
 		Name:  createdUser.Name,
@@ -29,8 +30,8 @@ func (s *UserService) CreateUser(user *model.CreateUserDTO) (*model.UserDTO, err
 	}, err
 }
 
-func (s *UserService) GetUserByID(id uuid.UUID) (*model.UserDTO, error) {
-	user, err := s.repo.GetByID(id)
+func (s *UserService) GetUserByID(ctx context.Context, id uuid.UUID) (*model.UserDTO, error) {
+	user, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +42,8 @@ func (s *UserService) GetUserByID(id uuid.UUID) (*model.UserDTO, error) {
 	}, nil
 }
 
-func (s *UserService) ListUsers(perPage int, page int) ([]model.UserDTO, error) {
-	users, err := s.repo.List(perPage, page)
+func (s *UserService) ListUsers(ctx context.Context, perPage int, page int) ([]model.UserDTO, error) {
+	users, err := s.repo.List(ctx, perPage, page)
 	if err != nil {
 		return nil, err
 	}
@@ -58,13 +59,13 @@ func (s *UserService) ListUsers(perPage int, page int) ([]model.UserDTO, error) 
 	return userDTOs, nil
 }
 
-func (s *UserService) UpdateUser(userDTO *model.UserDTO) (*model.UserDTO, error) {
+func (s *UserService) UpdateUser(ctx context.Context, userDTO *model.UserDTO) (*model.UserDTO, error) {
 	user := &model.User{
 		ID:    userDTO.ID,
 		Name:  userDTO.Name,
 		Email: userDTO.Email,
 	}
-	updatedUser, err := s.repo.Update(user)
+	updatedUser, err := s.repo.Update(ctx, user)
 	if err != nil {
 		return nil, err
 	}
@@ -75,6 +76,6 @@ func (s *UserService) UpdateUser(userDTO *model.UserDTO) (*model.UserDTO, error)
 	}, nil
 }
 
-func (s *UserService) DeleteUser(id uuid.UUID) (uuid.UUID, error) {
-	return s.repo.Delete(id)
+func (s *UserService) DeleteUser(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	return s.repo.Delete(ctx, id)
 }
