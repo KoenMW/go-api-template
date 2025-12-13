@@ -1,9 +1,9 @@
 services:
-  go-microservice:
+  go-api:
     build:
       context: ./src
       dockerfile: Dockerfile
-    container_name: go-microservice
+    container_name: go-api
     ports:
       - "8080:8080"
   postgres-db:

@@ -1,6 +1,6 @@
-# group11-go-microservice-template
+# group11-go-api-template
 
-Minimal Go microservice template following a hexagonal architecture. The service exposes user management endpoints.
+Minimal Go api template following a hexagonal architecture. The service exposes user management endpoints.
 
 ## Architecture
 
