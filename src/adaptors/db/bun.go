@@ -3,38 +3,58 @@ package db
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"errors"
+	"go-api/ports/db"
 	"os"
-	"time"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 )
 
-var DB *bun.DB
+var dbInstance *bunDB
 
-func NewBun() (*bun.DB, error) {
-	if DB != nil {
-		return DB, nil
+type bunDB struct {
+	bun         *bun.DB
+	notifyFuncs []func(ctx context.Context) error
+}
+
+func (b *bunDB) GetDB(ctx context.Context) (*bun.DB, error) {
+	if b.bun != nil {
+		return b.bun, nil
 	}
 
-	dsn := os.Getenv("postgressUrl")
+	dsn := os.Getenv("POSTGRES_URL")
 	if dsn == "" {
-		return nil, fmt.Errorf("postgressUrl environment variable not set")
+		return nil, errors.New("POSTGRES_URL environment variable not set")
 	}
 
 	sqldb := sql.OpenDB(pgdriver.NewConnector(
 		pgdriver.WithDSN(dsn),
 	))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	if err := sqldb.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("failed to connect to postgres: %w", err)
+		return nil, errors.New("failed to connect to postgres" + err.Error())
 	}
 
-	DB = bun.NewDB(sqldb, pgdialect.New())
-	return DB, nil
+	b.bun = bun.NewDB(sqldb, pgdialect.New())
+
+	for _, f := range b.notifyFuncs {
+		f(ctx)
+	}
+
+	return b.bun, nil
+}
+
+func (b *bunDB) NotifyFirstAvailable(f func(ctx context.Context) error) {
+	b.notifyFuncs = append(b.notifyFuncs, f)
+}
+
+func NewBun() db.DB {
+	if dbInstance != nil {
+		return dbInstance
+	}
+
+	dbInstance = &bunDB{}
+	return dbInstance
 }

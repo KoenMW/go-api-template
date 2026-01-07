@@ -2,10 +2,15 @@ package db
 
 import (
 	"go-api/domain/model"
-
-	"github.com/uptrace/bun"
+	dbPort "go-api/ports/db"
+	"go-api/ports/repository"
 )
 
-func NewUserRepository(db *bun.DB) *Repository[model.User] {
-	return NewRepository[model.User](db)
+type UserRepository struct {
+	repository.BaseRepository[*model.User]
+}
+
+func NewUserRepository(db dbPort.DB) repository.UserRepository {
+
+	return &UserRepository{BaseRepository: NewRepository[*model.User](db)}
 }

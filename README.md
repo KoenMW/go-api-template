@@ -102,6 +102,7 @@ This template does not include authentication, authorization, input validation b
 ## Run locally (with go)
 
 1. Build & run directly:
+
    ```bash
    cd src
    go run ./app
@@ -110,8 +111,9 @@ This template does not include authentication, authorization, input validation b
 ## Run with Docker
 
 1. Build & run with Docker Compose:
+
    ```bash
    docker compose up --build
    ```
 
-The service will be available at http://localhost:8080
+The service will be available at <http://localhost:8080>

@@ -2,61 +2,76 @@ package db
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"go-api/domain/core"
+	"go-api/domain/model"
+
+	dbPort "go-api/ports/db"
 
 	"github.com/google/uuid"
-	"github.com/uptrace/bun"
 )
 
-type Repository[T any] struct {
-	db   *bun.DB
-	zero *T
+type Repository[T model.BaseEntity] struct {
+	db   dbPort.DB
+	zero T
 }
 
-func NewRepository[T any](db *bun.DB) *Repository[T] {
-	var zero T
-	repo := &Repository[T]{db: db, zero: &zero}
-
-	_, err := db.NewCreateTable().
-		Model(repo.zero).
-		IfNotExists().
-		Exec(context.Background())
-
-	if err != nil {
-		panic(fmt.Errorf("failed creating users table: %w", err))
-	}
+func NewRepository[T model.BaseEntity](db dbPort.DB) *Repository[T] {
+	repo := &Repository[T]{db: db, zero: model.NewEntity[T]()}
 
 	return repo
 }
 
-func (r *Repository[T]) Create(ctx context.Context, entity *T) (*T, error) {
-	_, err := r.db.NewInsert().Model(entity).Exec(ctx)
+func (r *Repository[T]) Create(ctx context.Context, entity T) (T, error) {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return r.zero, err
+	}
+
+	_, err = db.NewInsert().Model(entity).Exec(ctx)
 	return entity, err
 }
 
-func (r *Repository[T]) GetByID(ctx context.Context, id uuid.UUID) (*T, error) {
-	var entity T
-	err := r.db.NewSelect().
-		Model(&entity).
-		Where("id = ?", id).
+func (r *Repository[T]) GetByID(ctx context.Context, id uuid.UUID) (T, error) {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return r.zero, err
+	}
+
+	entity := model.NewEntity[T]()
+	err = db.NewSelect().
+		Model(entity).
+		Where(core.WhereId, id).
 		Scan(ctx)
 
 	if err != nil {
-		return &entity, err
+		return entity, err
 	}
 
-	return &entity, nil
+	return entity, nil
 }
 
-func (r *Repository[T]) Update(ctx context.Context, entity *T) (*T, error) {
-	_, err := r.db.NewUpdate().Model(entity).Exec(ctx)
+func (r *Repository[T]) Update(ctx context.Context, entity T) (T, error) {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return r.zero, err
+	}
+
+	_, err = db.NewUpdate().Model(entity).Where(
+		core.WhereId, entity.GetId(),
+	).Exec(ctx)
 	return entity, err
 }
 
 func (r *Repository[T]) Delete(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
-	res, err := r.db.NewDelete().
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	res, err := db.NewDelete().
 		Model(r.zero).
-		Where("id = ?", id).
+		Where(core.WhereId, id).
 		Exec(ctx)
 	if err != nil {
 		return id, err
@@ -64,16 +79,21 @@ func (r *Repository[T]) Delete(ctx context.Context, id uuid.UUID) (uuid.UUID, er
 
 	affected, _ := res.RowsAffected()
 	if affected == 0 {
-		return id, fmt.Errorf("not found")
+		return id, errors.New("no rows deleted")
 	}
 
 	return id, nil
 }
 
 func (r *Repository[T]) List(ctx context.Context, perPage, page int) ([]T, error) {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var entities []T
 
-	err := r.db.NewSelect().
+	err = db.NewSelect().
 		Model(&entities).
 		Limit(perPage).
 		Offset((page - 1) * perPage).
@@ -87,8 +107,13 @@ func (r *Repository[T]) List(ctx context.Context, perPage, page int) ([]T, error
 }
 
 func (r *Repository[T]) Count(ctx context.Context) (int, error) {
+	db, err := r.db.GetDB(ctx)
+	if err != nil {
+		return 0, err
+	}
+
 	var count int
-	err := r.db.NewSelect().Model(new(T)).ColumnExpr("count(*)").Scan(ctx, &count)
+	err = db.NewSelect().Model(new(T)).ColumnExpr("count(*)").Scan(ctx, &count)
 	if err != nil {
 		return 0, err
 	}
